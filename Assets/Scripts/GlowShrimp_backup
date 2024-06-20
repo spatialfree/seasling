@@ -1,0 +1,195 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class GlowShrimp : MonoBehaviour
+{
+	[Header("References")]
+	public Design design;
+	public Rigidbody rb;
+	public Transform shrimpMesh;
+
+	float turnTiming;
+	float swimTiming;
+	bool pickedUp;
+	float orbitRate;
+	Vector3 springVel;
+	Vector3 handVel;
+	float tVel;
+	float shrimpID;
+	Vector3 orbitPoint;
+	float orbitSpacing = 1;
+	Vector3 oldMeshPos;
+	bool leftie;
+	float inputEach;
+	bool embedded = false;
+	Vector3 oldVel;
+	float speedValue;
+	float smoothAccel;
+	float swimForce;
+
+	MaterialPropertyBlock props;
+	public MeshRenderer rend;
+	int playSpeed;
+
+	private void Start()
+	{
+		orbitRate = Random.Range(design.shrOrbitSpeed / 4, design.shrOrbitSpeed);
+
+		if (Random.value > 0.5f)
+			orbitRate *= -1;
+
+		transform.localScale *= 1 - (Random.value * 0.5f);
+		//rend = transform.GetChild(0).GetComponent<MeshRenderer>();
+		props = new MaterialPropertyBlock();
+		playSpeed = Shader.PropertyToID("_PlaySpeed");
+	}
+
+	private void OnCollisionEnter(Collision collision)
+	{
+		// for now just use when thrown
+		if (!pickedUp && collision.gameObject.layer != 8 && collision.transform.GetComponent<EnemyCore>() != null)
+		{
+			// implement damage based on relative speed
+			collision.transform.GetComponent<EnemyCore>().health -= (rb.velocity.magnitude / design.shrMaxVel) * design.shrDamageMult;
+
+			// embed into the creature until it dies
+			transform.SetParent(collision.transform);
+			embedded = rb.isKinematic = true;
+			Destroy(gameObject);
+			//transform.position += transform.rotation * (Vector3.forward * 0.01f);
+		}
+	}
+
+	private void OnCollisionExit(Collision collision)
+	{
+		//embedded = pickedUp = rb.isKinematic = false;
+	}
+
+	private void Update()
+	{
+		rend.GetPropertyBlock(props);
+		speedValue = Mathf.Clamp01(speedValue - Time.deltaTime);
+		smoothAccel = Mathf.Lerp(smoothAccel, speedValue, 0.5f * Time.deltaTime * 30);
+		props.SetFloat(playSpeed, smoothAccel * 0.25f);
+		rend.SetPropertyBlock(props);
+
+		float lDist = Vector3.Distance(transform.position, design.lSpring);
+		float inputL = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.LTouch).y;
+
+		float rDist = Vector3.Distance(transform.position, design.rSpring);
+		float inputR = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick, OVRInput.Controller.RTouch).y;
+
+		if (!embedded)
+		{
+			if (!pickedUp)
+			{
+				if (lDist < design.shrPullRange && inputL == 0 && design.lShrimp < design.shrimpPerHand)
+				{
+					rb.AddForce((transform.position - design.lSpring) * (design.shrPullRange - lDist) * design.shrPullForce);
+				
+					if (lDist < design.shrSnapRange)
+					{
+						pickedUp = rb.isKinematic = true;
+						shrimpID = ++design.lShrimp;
+						//rb.interpolation = RigidbodyInterpolation.Interpolate;
+						transform.position = orbitPoint = design.lSpring;
+						leftie = true;
+					}
+				}
+
+				if (rDist < design.shrPullRange && inputR == 0 && design.rShrimp < design.shrimpPerHand)
+				{
+					rb.AddForce((transform.position - design.rSpring) * (design.shrPullRange - rDist) * design.shrPullForce);
+				
+					if (rDist < design.shrSnapRange)
+					{
+						pickedUp = rb.isKinematic = true;
+						shrimpID = ++design.rShrimp;
+						//rb.interpolation = RigidbodyInterpolation.Interpolate;
+						transform.position = orbitPoint = design.rSpring;
+						leftie = false;
+					}
+				}
+			}	
+			else
+			{
+				if (leftie)
+				{
+					orbitSpacing = Mathf.Lerp(orbitSpacing, shrimpID / design.lShrimp, 0.5f * Time.deltaTime);
+					orbitPoint = Vector3.Lerp(design.lHandPos, design.lSpring, orbitSpacing);
+					inputEach = inputL;
+				}
+				else
+				{
+					orbitSpacing = Mathf.Lerp(orbitSpacing, shrimpID / design.rShrimp, 0.5f * Time.deltaTime);
+					orbitPoint = Vector3.Lerp(design.rHandPos, design.rSpring, orbitSpacing);
+					inputEach = inputR;
+				}
+
+				springVel = (orbitPoint - transform.position) / Time.deltaTime;
+
+				// Orbit
+				transform.rotation *= Quaternion.Euler(Vector3.up * Time.deltaTime * orbitRate);
+				transform.position = orbitPoint;
+
+				Vector3 newDir = shrimpMesh.position - oldMeshPos;
+				if (newDir.magnitude > 0.001f)
+					shrimpMesh.rotation = Quaternion.Slerp(shrimpMesh.rotation, Quaternion.LookRotation(newDir), 0.5f * Time.deltaTime * 15);
+			
+				// shrimpMesh.localRotation = Quaternion.Slerp(shrimpMesh.localRotation, Quaternion.identity, 0.5f * Time.deltaTime * 5);
+
+				float orbitMod = 0.2f * (1 - (-inputEach * 0.66f)) * Mathf.Lerp(1, 0.25f, orbitSpacing);
+				shrimpMesh.localPosition = Vector3.right * Mathf.Lerp(shrimpMesh.localPosition.x, orbitMod, 0.5f * Time.deltaTime * 5);
+				oldMeshPos = shrimpMesh.position;
+
+				if (leftie && inputL > 0 && shrimpID == design.lerpShrimpL || !leftie && inputR > 0 && shrimpID == design.lerpShrimpR)
+				{
+					transform.position = shrimpMesh.position;
+					shrimpMesh.localPosition = Vector3.zero;
+					shrimpMesh.localRotation = Quaternion.identity;
+
+					transform.rotation = Quaternion.LookRotation(springVel);
+					float velFactor = Mathf.Clamp(springVel.magnitude * springVel.magnitude, 0, design.shrMaxVel);
+					rb.velocity = springVel * velFactor;
+				
+					shrimpID = 0;
+					pickedUp = rb.isKinematic = false;
+
+					if (leftie)
+						design.lShrimp--;
+					else
+						design.rShrimp--;
+
+				}
+			}
+		}
+	}
+
+	private void FixedUpdate()
+	{
+		if (!pickedUp && !embedded)
+		{
+			if (Vector3.Distance(transform.position, transform.parent.position) > 1)
+			{
+				rb.rotation = Quaternion.Lerp(rb.rotation, Quaternion.LookRotation(transform.parent.position - transform.position), 0.5f * Time.deltaTime * 0.25f);
+			}
+			else if (Time.time > turnTiming)
+			{
+				Vector3 randomDir = Random.rotation * Vector3.forward;
+				rb.AddTorque(randomDir * design.shrRotate * Random.value);
+				turnTiming = Time.time + (Random.value * 1.5f);
+			}
+
+			if (Time.time > swimTiming)
+			{
+				speedValue = Random.value;
+				rb.AddRelativeForce(Vector3.forward * design.shrSwim * speedValue, ForceMode.Impulse);
+				swimTiming = Time.time + (Random.value * 3);
+			}
+		}
+
+		//speedValue = Mathf.Abs(Vector3.Distance(rb.velocity, oldVel));
+		//oldVel = rb.velocity;
+	}
+}

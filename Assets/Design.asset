@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e4bb17c2779af144b10146950ec5e69, type: 3}
+  m_Name: Design
+  m_EditorClassIdentifier: 
+  stage: 0
+  bgLoopLerp: 1
+  mass: 1
+  maxVel: 1
+  accel: 2
+  fluidDynStr: 20
+  hSpringStr: 20
+  sSpringStr: 60
+  combatMod: 16
+  fallOff: 10
+  shrimpPerHand: 20
+  fogFallOff: 10
+  grappling: 0
+  shrDamageMult: 1
+  shrMinVel: 2
+  shrMaxVel: 8
+  shrDrag: 0.5
+  shrRotate: 100
+  shrSwim: 0.25
+  shrSwimRate: 3
+  shrPullRange: 1
+  shrPullForce: -2
+  shrSnapRange: 0.25
+  shrOrbitSpeed: 150
+  shrLColorShift: {r: 0, g: 1, b: 1, a: 1}
+  shrRColorShift: {r: 0, g: 1, b: 1, a: 1}
+  spawnRadius: 10
+  dashRange: 5
+  currentEnemies: 3
+  playerPos: {x: 0, y: 0, z: 0}
+  netVelocity: {x: 0, y: 0, z: 0}
+  shrimpactPos: {x: 0, y: 0, z: 0}
+  lShrimp: 0
+  lHandPos: {x: -0.04278477, y: -0.7706629, z: 0.3069715}
+  lSpring: {x: -0.042785645, y: -0.7706629, z: 0.3069715}
+  lSpringVel: {x: 0, y: 0, z: 0}
+  llSpring: {x: -0.042785645, y: -0.7706629, z: 0.3069715}
+  rShrimp: 0
+  rHandPos: {x: 0.025909305, y: -0.31504676, z: 0.20575286}
+  rSpring: {x: 0.025909424, y: -0.31504676, z: 0.20575286}
+  rSpringVel: {x: 0, y: 0, z: 0}
+  rrSpring: {x: 0.025909424, y: -0.31504676, z: 0.20575286}
+  lStick: 0
+  rStick: 0
+  lTrigger: 0
+  rTrigger: 0
